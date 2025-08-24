@@ -76,3 +76,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Zip downloaded artifacts
+        run: |
+          if [ -d artifacts ]; then
+            cd artifacts || exit 0
+            zip -r ../artifacts-${{ github.sha }}.zip . || true
+            cd -
+          else
+            echo "No artifacts to zip"
+          fi
+
+      - name: Upload release asset (test artifacts)
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: artifacts-${{ github.sha }}.zip
+          asset_name: test-artifacts-${{ github.sha }}.zip
+          asset_content_type: application/zip
+
