@@ -2,7 +2,7 @@ import re
 import json
 import logging
 from time import sleep
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Tuple
 
 try:
     from helpers import retrieve_url
