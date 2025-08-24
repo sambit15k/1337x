@@ -1,9 +1,7 @@
-# .github/workflows/slack-deploy-notify.yml
 name: Slack notifications
 
 on:
   workflow_run:
-    # Update to the workflow(s) you care about
     workflows: ['CI', 'Build and Test']
     types: [requested, completed]
   pull_request:
@@ -51,10 +49,14 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Post to Slack (Incoming Webhook)
-        if: ${{ (inputs.dry_run != true) && (secrets.SLACK_WEBHOOK_URL != '') }}
+        if: ${{ inputs.dry_run != true }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          curl -s -X POST -H 'Content-type: application/json' \
-               --data '${{ steps.build.outputs.json }}' \
-               "$SLACK_WEBHOOK_URL"
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then
+            curl -s -X POST -H 'Content-type: application/json' \
+                 --data '${{ steps.build.outputs.json }}' \
+                 "$SLACK_WEBHOOK_URL"
+          else
+            echo "SLACK_WEBHOOK_URL is not set. Skipping Slack notification."
+          fi
