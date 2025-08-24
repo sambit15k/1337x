@@ -2,29 +2,36 @@ import re
 import json
 import logging
 from time import sleep
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Any, cast, TYPE_CHECKING
 
-try:
-    from helpers import retrieve_url
-except Exception:
-    retrieve_url = None  # type: ignore
+if TYPE_CHECKING:
+    from typing import Callable
+    retrieve_url: Optional["Callable[[str], str]"] = None  # type: ignore
+else:
+    try:
+        from helpers import retrieve_url
+    except Exception:
+        retrieve_url = None  # type: ignore
 
-try:
-    from novaprinter import prettyPrinter
-except Exception:
-    # Fallback prettyPrinter for environments without novaprinter.
-    def prettyPrinter(data: dict) -> None:  # type: ignore
-        # Minimal printable representation to mimic novaprinter behaviour
-        out = {
-            'name': data.get('name'),
-            'link': data.get('link'),
-            'size': data.get('size'),
-            'seeds': data.get('seeds'),
-            'leech': data.get('leech'),
-            'engine_url': data.get('engine_url'),
-            'desc_link': data.get('desc_link')
-        }
-        print(json.dumps(out, ensure_ascii=False))
+if TYPE_CHECKING:
+    def prettyPrinter(data: dict) -> None: ...  # type: ignore
+else:
+    try:
+        from novaprinter import prettyPrinter
+    except Exception:
+        # Fallback prettyPrinter for environments without novaprinter.
+        def prettyPrinter(data: dict) -> None:  # type: ignore
+            # Minimal printable representation to mimic novaprinter behaviour
+            out = {
+                'name': data.get('name'),
+                'link': data.get('link'),
+                'size': data.get('size'),
+                'seeds': data.get('seeds'),
+                'leech': data.get('leech'),
+                'engine_url': data.get('engine_url'),
+                'desc_link': data.get('desc_link')
+            }
+            print(json.dumps(out, ensure_ascii=False))
 
 # Optional requests fallback
 try:
@@ -41,6 +48,10 @@ try:
 except Exception:
     BeautifulSoup = None  # type: ignore
     _HAS_BS4 = False
+
+if TYPE_CHECKING:
+    # Types used only for static checking when bs4 is available
+    from bs4.element import Tag, NavigableString, PageElement  # type: ignore
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -108,20 +119,25 @@ class x1337(object):
             if _HAS_BS4 and BeautifulSoup is not None:
                 try:
                     soup = BeautifulSoup(html, 'html.parser')
-                    rows = soup.find_all('tr')
-                    for row in rows:
-                        a = row.find('a', href=re.compile(r'^/torrent/'))
+                    bs_rows = soup.find_all('tr')
+                    for row in bs_rows:
+                        # cast to Tag for type checkers (at runtime row is a Tag)
+                        row_tag = cast('Tag', row)
+                        a = row_tag.find('a', href=re.compile(r'^/torrent/'))
                         if not a:
                             continue
-                        torrent_url = self.url + a['href']
-                        name = a.get_text(strip=True)
-                        cols = row.find_all('td')
+                        a_tag = cast('Tag', a)
+                        href_val = a_tag.get('href') or ''
+                        torrent_url: str = self.url + (href_val if isinstance(href_val, str) else str(href_val))
+                        name: str = a_tag.get_text(strip=True)
+                        # cast find_all result to a list of Tag to satisfy type checker
+                        cols = cast('List[Tag]', row_tag.find_all('td'))
                         # Best-effort mapping based on 1337x table layout
-                        seeds = cols[1].get_text(strip=True) if len(cols) > 1 else '0'
-                        leech = cols[2].get_text(strip=True) if len(cols) > 2 else '0'
-                        size_text = cols[3].get_text(strip=True) if len(cols) > 3 else ''
+                        seeds = cast('Tag', cols[1]).get_text(strip=True) if len(cols) > 1 else '0'
+                        leech = cast('Tag', cols[2]).get_text(strip=True) if len(cols) > 2 else '0'
+                        size_text = cast('Tag', cols[3]).get_text(strip=True) if len(cols) > 3 else ''
                         size_str, size_bytes = x1337._normalize_size(size_text)
-                        magnet = self.__getMagnetLink(torrent_url)
+                        magnet = self.__getMagnetLink(str(torrent_url))
                         if magnet:
                             results.append([magnet, name, size_str, seeds, leech, torrent_url, size_bytes])
                     return results
@@ -153,8 +169,17 @@ class x1337(object):
 
         def __getMagnetLink(self, desc_url: str) -> Optional[str]:
             try:
-                html = retrieve_url(desc_url)
-                match = self.MAGNET_PATTERN.search(html)
+                html: Optional[str] = None
+                if retrieve_url is not None:
+                    # helpers.retrieve_url may be provided by the host environment
+                    html = retrieve_url(desc_url)  # type: ignore[arg-type]
+                elif _HAS_REQUESTS and requests is not None:
+                    r = requests.get(desc_url, timeout=10)
+                    r.raise_for_status()
+                    html = r.text
+                if not html:
+                    return None
+                match = self.MAGNET_PATTERN.search(html if isinstance(html, str) else str(html))
                 if match:
                     return match.group(1)
             except Exception as e:
@@ -226,6 +251,8 @@ class x1337(object):
                     return None
                 sleep(backoff)
                 backoff *= self.RETRY_BACKOFF
+        # ensure a return for static type checkers
+        return None
 
     def search(self, what: str, cat: str = 'all', output_json: bool = False, max_pages: Optional[int] = None) -> None:
         """Search for torrents matching 'what' in the given category and print results.
