@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [ main, dev ]
+    # Also run on tag pushes matching v* (e.g. v0.1.0)
+    tags: ['v*']
   pull_request:
     branches: [ main, dev ]
   workflow_dispatch: {}
