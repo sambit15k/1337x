@@ -120,7 +120,7 @@ class x1337(object):
                         seeds = cols[1].get_text(strip=True) if len(cols) > 1 else '0'
                         leech = cols[2].get_text(strip=True) if len(cols) > 2 else '0'
                         size_text = cols[3].get_text(strip=True) if len(cols) > 3 else ''
-                        size_str, size_bytes = self._normalize_size(size_text)
+                        size_str, size_bytes = x1337._normalize_size(size_text)
                         magnet = self.__getMagnetLink(torrent_url)
                         if magnet:
                             results.append([magnet, name, size_str, seeds, leech, torrent_url, size_bytes])
@@ -138,7 +138,7 @@ class x1337(object):
                     seeds = match.group(3).strip()
                     leech = match.group(4).strip()
                     raw_size = match.group(5).strip()
-                    size_str, size_bytes = self._normalize_size(raw_size)
+                    size_str, size_bytes = x1337._normalize_size(raw_size)
                     magnet = self.__getMagnetLink(torrent_url)
                     if magnet:
                         results.append([magnet, name, size_str, seeds, leech, torrent_url, size_bytes])
