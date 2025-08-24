@@ -204,4 +204,6 @@ def main():
 
     print(json.dumps(payload))
 
+
 if __name__ == '__main__':
+    main()
