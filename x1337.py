@@ -2,7 +2,7 @@ import re
 import json
 import logging
 from time import sleep
-from typing import Optional, List, Tuple, Any, cast, TYPE_CHECKING
+from typing import Optional, List, Tuple, cast, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import Callable
@@ -51,7 +51,7 @@ except Exception:
 
 if TYPE_CHECKING:
     # Types used only for static checking when bs4 is available
-    from bs4.element import Tag, NavigableString, PageElement  # type: ignore
+    from bs4.element import Tag  # type: ignore
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
