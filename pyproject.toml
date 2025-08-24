@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "x1337"
+version = "0.1.0"
+description = "A parser and test summarizer for JUnit XML results."
+authors = [
+    { name = "sambit15k" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+
+[project.urls]
+Homepage = "https://github.com/sambit15k/1337x"
+Repository = "https://github.com/sambit15k/1337x"
+
+[tool.setuptools]
+packages = ["x1337"]

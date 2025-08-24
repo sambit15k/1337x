@@ -1,0 +1,60 @@
+# .github/workflows/slack-deploy-notify.yml
+name: Slack notifications
+
+on:
+  workflow_run:
+    # Update to the workflow(s) you care about
+    workflows: ['CI', 'Build and Test']
+    types: [requested, completed]
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+  push:
+    branches: [main, master, release/*]
+  deployment_status:
+  release:
+    types: [published, created, edited]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Generate payload but don't post to Slack"
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  notify:
+    name: Send Slack notification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build Slack payload
+        id: build
+        env:
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          ACTOR: ${{ github.actor }}
+          REF: ${{ github.ref }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: |
+          python ./.github/scripts/slack_payload.py > /tmp/slack_payload.json
+          echo "json<<EOF" >> $GITHUB_OUTPUT
+          cat /tmp/slack_payload.json >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Preview JSON in job summary (for debugging)
+        run: |
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          echo '${{ steps.build.outputs.json }}' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Post to Slack (Incoming Webhook)
+        if: ${{ (inputs.dry_run != true) && (secrets.SLACK_WEBHOOK_URL != '') }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -s -X POST -H 'Content-type: application/json' \
+               --data '${{ steps.build.outputs.json }}' \
+               "$SLACK_WEBHOOK_URL"

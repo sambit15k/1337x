@@ -1,0 +1,8 @@
+README.md
+pyproject.toml
+tests/test_x1337.py
+x1337/__init__.py
+x1337.egg-info/PKG-INFO
+x1337.egg-info/SOURCES.txt
+x1337.egg-info/dependency_links.txt
+x1337.egg-info/top_level.txt
