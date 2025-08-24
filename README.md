@@ -1,5 +1,7 @@
 # 1337x
 
+[![CI](https://github.com/sambit15k/1337x/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/sambit15k/1337x/actions/workflows/ci.yml)
+
 This repository contains a small Python scraper/search engine wrapper for the 1337x torrent site.
 
 Main file
