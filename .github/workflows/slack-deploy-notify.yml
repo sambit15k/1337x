@@ -49,14 +49,18 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Post to Slack (Incoming Webhook)
-        if: ${{ inputs.dry_run != true }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: |
-          if [ -n "$SLACK_WEBHOOK_URL" ]; then
-            curl -s -X POST -H 'Content-type: application/json' \
-                 --data '${{ steps.build.outputs.json }}' \
-                 "$SLACK_WEBHOOK_URL"
-          else
-            echo "SLACK_WEBHOOK_URL is not set. Skipping Slack notification."
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run enabled, not posting to Slack."
+            exit 0
           fi
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "SLACK_WEBHOOK_URL is not set. Skipping Slack notification."
+            exit 0
+          fi
+          curl -s -X POST -H 'Content-type: application/json' \
+               --data '${{ steps.build.outputs.json }}' \
+               "$SLACK_WEBHOOK_URL"
